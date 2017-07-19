@@ -1,5 +1,6 @@
 package com.zmxv.RNSound;
 
+import android.content.Context;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
@@ -38,6 +39,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void prepare(final String fileName, final Integer key, final ReadableMap options, final Callback callback) {
+    Log.i("ReactNativeJS","filename = "+fileName);
     MediaPlayer player = createMediaPlayer(fileName);
     if (player == null) {
       WritableMap e = Arguments.createMap();
@@ -96,15 +98,14 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
       // prepares the audio for us already. So we catch and ignore this error
     }
   }
-
+  private int audioType = AudioManager.STREAM_MUSIC;
   protected MediaPlayer createMediaPlayer(final String fileName) {
+    MediaPlayer mediaPlayer = null;
     int res = this.context.getResources().getIdentifier(fileName, "raw", this.context.getPackageName());
     if (res != 0) {
-      return MediaPlayer.create(this.context, res);
-    }
-    if(fileName.startsWith("http://") || fileName.startsWith("https://")) {
-      MediaPlayer mediaPlayer = new MediaPlayer();
-      mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+      mediaPlayer = MediaPlayer.create(this.context, res);
+    }else if(fileName.startsWith("http://") || fileName.startsWith("https://")) {
+      mediaPlayer = new MediaPlayer();
       Log.i("RNSoundModule", fileName);
       try {
         mediaPlayer.setDataSource(fileName);
@@ -112,16 +113,18 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
         Log.e("RNSoundModule", "Exception", e);
         return null;
       }
-      return mediaPlayer;
+    }else{
+      File file = new File(fileName);
+      if (file.exists()) {
+        Uri uri = Uri.fromFile(file);
+        // Mediaplayer is already prepared here.
+        mediaPlayer = MediaPlayer.create(this.context, uri);
+      }
     }
-
-    File file = new File(fileName);
-    if (file.exists()) {
-      Uri uri = Uri.fromFile(file);
-      // Mediaplayer is already prepared here.
-      return MediaPlayer.create(this.context, uri);
+    if(mediaPlayer != null){
+      mediaPlayer.setAudioStreamType(audioType);
     }
-    return null;
+    return mediaPlayer;
   }
 
   @ReactMethod
