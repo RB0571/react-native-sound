@@ -1,6 +1,7 @@
 package com.zmxv.RNSound;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
@@ -22,15 +23,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class RNSound {
+  private static final String TAG = "ReactNativeJS";
   Map<Integer, MediaPlayer> playerPool = new HashMap<>();
   Context context;
-
-  public RNSound(Context context) {
+  private static RNSound sound;
+  public static RNSound getInstance(Context context){
+    if (sound == null){
+      sound = new RNSound(context);
+    }
+    return sound;
+  }
+  private RNSound(Context context) {
     this.context = context;
   }
 
   public void prepare(final String fileName, final Integer key, final ReadableMap options, final SoundManager.Prepare prepare) {
-    Log.i("ReactNativeJS","filename = "+fileName);
+    Log.i(TAG,"prepare === > : key = "+key+" , filename = "+fileName);
     MediaPlayer player = createMediaPlayer(fileName);
     if (player == null) {
       WritableMap e = Arguments.createMap();
@@ -72,6 +80,28 @@ public class RNSound {
       // prepares the audio for us already. So we catch and ignore this error
     }
   }
+  private MediaPlayer player;
+  private void setPlayer(final String fileName) {
+    int res = this.context.getResources().getIdentifier(fileName, "raw", this.context.getPackageName());
+    try {
+      if (res != 0) {
+        AssetFileDescriptor file = this.context.getResources().openRawResourceFd(res);
+        player.setDataSource(file.getFileDescriptor(),file.getStartOffset(),file.getLength());
+      } else if (fileName.startsWith("http://") || fileName.startsWith("https://")) {
+        player.setDataSource(fileName);
+      } else {
+        File file = new File(fileName);
+        if (file.exists()) {
+          Uri uri = Uri.fromFile(file);
+          player.setDataSource(this.context, uri);
+        }
+      }
+      player.setAudioStreamType(audioType);
+    }catch (IOException e){
+      e.printStackTrace();
+    }
+  }
+
   private int audioType = AudioManager.STREAM_MUSIC;
   protected MediaPlayer createMediaPlayer(final String fileName) {
     MediaPlayer mediaPlayer = null;

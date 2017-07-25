@@ -29,7 +29,7 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
   public RNSoundModule(ReactApplicationContext context) {
     super(context);
     this.context = context;
-    sound = new RNSound(context);
+    sound = RNSound.getInstance(context.getApplicationContext());//new RNSound(context);
   }
 
   @Override
