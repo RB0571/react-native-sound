@@ -89,7 +89,10 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
     sound.stop(key);
     callback.invoke();
   }
-
+  @ReactMethod
+  public void stopAll(){
+    sound.stopAll();
+  }
   @ReactMethod
   public void release(final Integer key) {
     sound.release(key);

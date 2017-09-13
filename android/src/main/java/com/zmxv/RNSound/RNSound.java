@@ -20,6 +20,7 @@ import com.facebook.react.bridge.WritableMap;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class RNSound {
@@ -172,6 +173,18 @@ public class RNSound {
     MediaPlayer player = this.playerPool.get(key);
     if (player != null && player.isPlaying()) {
       player.pause();
+    }
+  }
+  public void stopAll(){
+    /*for(int i = 0;i<this.playerPool.size();i++){
+      if (player != null && player.isPlaying()) {
+        player.pause();
+        player.seekTo(0);
+      }
+    }*/
+    for(Map.Entry<Integer,MediaPlayer> entry:playerPool.entrySet()){
+      stop(entry.getKey());
+      release(entry.getKey());
     }
   }
 
