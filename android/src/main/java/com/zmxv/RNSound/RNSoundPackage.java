@@ -19,7 +19,8 @@ public class RNSoundPackage implements ReactPackage {
     return modules;
   }
 
-  @Override
+  //@Override
+  //deprecated by RN0.47
   public List<Class<? extends JavaScriptModule>> createJSModules() {
     return Collections.emptyList();
   }
