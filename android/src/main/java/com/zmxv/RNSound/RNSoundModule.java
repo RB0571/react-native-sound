@@ -1,6 +1,7 @@
 package com.zmxv.RNSound;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.media.MediaPlayer.OnErrorListener;
@@ -20,6 +21,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.io.IOException;
+
 import android.util.Log;
 
 public class RNSoundModule extends ReactContextBaseJavaModule {
@@ -67,6 +69,53 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
         }
       }
     });
+
+    try {
+      player.prepareAsync();
+    } catch (IllegalStateException ignored) {
+      // When loading files from a file, we useMediaPlayer.create, which actually
+      // prepares the audio for us already. So we catch and ignore this error
+    }
+  }
+
+  protected MediaPlayer createMediaPlayer(final String fileName) {
+    int res = this.context.getResources().getIdentifier(fileName, "raw", this.context.getPackageName());
+    if (res != 0) {
+      return MediaPlayer.create(this.context, res);
+    }
+    if(fileName.startsWith("http://") || fileName.startsWith("https://")) {
+      MediaPlayer mediaPlayer = new MediaPlayer();
+      mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
+      Log.i("RNSoundModule", fileName);
+      try {
+        mediaPlayer.setDataSource(fileName);
+      } catch(IOException e) {
+        Log.e("RNSoundModule", "Exception", e);
+        return null;
+      }
+      return mediaPlayer;
+    }
+
+    if (fileName.startsWith("asset:/")){
+        try {
+            AssetFileDescriptor descriptor = this.context.getAssets().openFd(fileName.replace("asset:/", ""));
+            MediaPlayer mediaPlayer = new MediaPlayer();
+            mediaPlayer.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+            descriptor.close();
+            return mediaPlayer;
+        } catch(IOException e) {
+            Log.e("RNSoundModule", "Exception", e);
+            return null;
+        }
+    }
+
+    File file = new File(fileName);
+    if (file.exists()) {
+      Uri uri = Uri.fromFile(file);
+      // Mediaplayer is already prepared here.
+      return MediaPlayer.create(this.context, uri);
+    }
+    return null;
   }
 
   @ReactMethod
@@ -94,6 +143,14 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
     sound.stopAll();
   }
   @ReactMethod
+  public void reset(final Integer key) {
+    MediaPlayer player = this.playerPool.get(key);
+    if (player != null) {
+      player.reset();
+    }
+  }
+
+  @ReactMethod
   public void release(final Integer key) {
     sound.release(key);
   }
@@ -101,6 +158,28 @@ public class RNSoundModule extends ReactContextBaseJavaModule {
   @ReactMethod
   public void setVolume(final Integer key, final Float left, final Float right) {
     sound.setVolume(key,left,right);
+  }
+
+  @ReactMethod
+  public void getSystemVolume(final Callback callback) {
+    try {
+      AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+
+      callback.invoke(NULL, (float) audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) / audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
+    } catch (Exception error) {
+      WritableMap e = Arguments.createMap();
+      e.putInt("code", -1);
+      e.putString("message", error.getMessage());
+      callback.invoke(e);
+    }
+  }
+
+  @ReactMethod
+  public void setSystemVolume(final Float value) {
+    AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+
+    int volume = Math.round(audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC) * value);
+    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume, 0);
   }
 
   @ReactMethod
