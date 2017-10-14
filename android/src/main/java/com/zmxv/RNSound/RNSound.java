@@ -103,7 +103,7 @@ public class RNSound {
     }
   }
 
-  private int audioType = AudioManager.STREAM_MUSIC;
+  private int audioType = AudioManager.STREAM_ALARM;
   protected MediaPlayer createMediaPlayer(final String fileName) {
     MediaPlayer mediaPlayer = null;
     int res = this.context.getResources().getIdentifier(fileName, "raw", this.context.getPackageName());
